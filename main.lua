@@ -4,17 +4,13 @@ local player = {
     y = 300,             -- Posición inicial en el eje y
     vy = 0,              -- Velocidad vertical inicial
     s = 200,             -- Velocidad de movimiento lateral
-    jumpHeight = -500,    -- Altura del salto
-    vFlag=1
+    jumpHeight = -500,   -- Altura del salto
+    width = 50,          -- Ancho del jugador
+    height = 50          -- Altura del jugador
 }
 
 -- Definición de las plataformas
-local platforms = {
-    {x = 100, y = 400, l = 200, h = 20},  -- Primera plataforma
-    {x = 500, y = 200, l = 150, h = 20},  -- Segunda plataforma
-    {x = 300, y = 400, l = 150, h = 20}  -- Tercera plataforma
-    -- Puedes añadir más plataformas aquí si lo deseas
-}
+local platforms = nil  -- Será definido después según el nivel seleccionado
 
 -- Definición del suelo
 local floor = {
@@ -23,34 +19,99 @@ local floor = {
     h = 20     -- Altura
 }
 
+-- Variable para controlar el estado del juego
+local gameState = "startMenu"
+
 -- Función para cargar el juego
 function love.load()
-    love.window.setTitle("Player Movement")  -- Título de la ventana
+    love.window.setTitle("Platformer Game")  -- Título de la ventana
     love.window.setMode(800, 600)            -- Tamaño de la ventana
 end
 
 -- Función para actualizar el estado del juego
 function love.update(dt)
+    if gameState == "startMenu" then
+        if love.keyboard.isDown("return") then
+            startGame()  -- Iniciar el juego al presionar Enter
+        end
+    elseif gameState == "gameplay" then
+        updateGameplay(dt)  -- Actualizar el juego en el estado de gameplay
+    end
+end
+
+-- Función para dibujar los elementos del juego en la pantalla
+function love.draw()
+    if gameState == "startMenu" then
+        drawStartMenu()  -- Dibujar el menú de inicio
+    elseif gameState == "gameplay" then
+        drawGameplay()   -- Dibujar el gameplay
+    end
+end
+
+-- Función para iniciar el juego
+function startGame()
+    gameState = "gameplay"  -- Cambiar al estado de gameplay
+    -- Definir las plataformas según el nivel seleccionado
+    platforms = {
+        {x = 100, y = 400, l = 200, h = 20},  -- Primera plataforma
+        {x = 500, y = 200, l = 150, h = 20},  -- Segunda plataforma
+        {x = 300, y = 600, l = 150, h = 20},  -- Tercera plataforma
+        -- Puedes añadir más plataformas aquí si lo deseas
+    }
+end
+
+-- Función para dibujar el menú de inicio
+function drawStartMenu()
+    love.graphics.setColor(255, 255, 255)
+    love.graphics.printf("Press Enter to Start", 0, 300, 800, "center")
+end
+
+-- Función para dibujar el gameplay
+function drawGameplay()
+    love.graphics.setColor(255, 255, 255)    -- Establecer el color blanco para dibujar el jugador
+
+    -- Dibujar el jugador como un rectángulo blanco
+    love.graphics.rectangle("fill", player.x, player.y, player.width, player.height)
+
+    love.graphics.setColor(0, 255, 0)        -- Establecer el color verde para dibujar las plataformas
+
+    -- Dibujar las plataformas como rectángulos verdes
+    for _, platform in ipairs(platforms) do
+        love.graphics.rectangle("fill", platform.x, platform.y, platform.l, platform.h)
+    end
+
+    love.graphics.setColor(0, 0, 255)        -- Establecer el color azul para dibujar el suelo
+
+    -- Dibujar el suelo como un rectángulo azul
+    love.graphics.rectangle("fill", 0, floor.y, floor.l, floor.h)
+end
+
+-- Función para actualizar el estado de gameplay
+function updateGameplay(dt)
     local dx, dy = 0, 0                      -- Cambio en las coordenadas x e y del jugador
     local k = love.keyboard.isDown           -- Función para verificar si se presiona una tecla
 
     -- Aplicar gravedad al jugador
-    player.vy = player.vy + (700*player.vFlag) * dt         -- Aumentar la velocidad vertical del jugador debido a la gravedad
+    player.vy = player.vy + 700 * dt         -- Aumentar la velocidad vertical del jugador debido a la gravedad
     player.y = player.y + player.vy * dt     -- Actualizar la posición vertical del jugador
 
     -- Colisión con el suelo
-    if player.y + 50 > floor.y then
-        player.y = floor.y - 50               -- Reposicionar al jugador en la parte superior del suelo
+    if player.y + player.height > floor.y then
+        player.y = floor.y - player.height    -- Reposicionar al jugador en la parte superior del suelo
         player.vy = 0                         -- Detener la velocidad vertical del jugador
     end
 
     -- Colisión con las plataformas
     for _, platform in ipairs(platforms) do
-        if checkCollision(player.x, player.y, 50, 50, platform.x, platform.y, platform.l, platform.h) then
-            player.vy = 0                     -- Detener la velocidad vertical del jugador
-            player.vFlag=0
-            else
-                 player.vFlag=1 
+        if checkCollision(player.x, player.y, player.width, player.height, platform.x, platform.y, platform.l, platform.h) then
+            -- Si hay colisión, ajustar la posición del jugador
+            if player.vy > 0 then  -- Si está cayendo
+                player.y = platform.y - player.height  -- Reposicionar al jugador en la parte superior de la plataforma
+                player.vy = 0                          -- Detener la caída del jugador
+            elseif player.vy < 0 then  -- Si está saltando
+                player.y = platform.y + platform.h     -- Reposicionar al jugador en la parte inferior de la plataforma
+                player.vy = 0                          -- Detener el salto del jugador
+            end
         end
     end
 
@@ -68,26 +129,6 @@ function love.update(dt)
     end
 
     player.x = player.x + dx                 -- Actualizar la posición horizontal del jugador
-end
-
--- Función para dibujar los elementos del juego en la pantalla
-function love.draw()
-    love.graphics.setColor(255, 255, 255)    -- Establecer el color blanco para dibujar el jugador
-
-    -- Dibujar el jugador como un rectángulo blanco
-    love.graphics.rectangle("fill", player.x, player.y, 50, 50)
-
-    love.graphics.setColor(0, 255, 0)        -- Establecer el color verde para dibujar las plataformas
-
-    -- Dibujar las plataformas como rectángulos verdes
-    for _, platform in ipairs(platforms) do
-        love.graphics.rectangle("fill", platform.x, platform.y, platform.l, platform.h)
-    end
-
-    love.graphics.setColor(0, 0, 255)        -- Establecer el color azul para dibujar el suelo
-
-    -- Dibujar el suelo como un rectángulo azul
-    love.graphics.rectangle("fill", 0, floor.y, floor.l, floor.h)
 end
 
 -- Función para comprobar colisiones entre dos rectángulos

@@ -1,12 +1,13 @@
 -- Definición de las propiedades del jugador
-local player = {
+player = {
     x = 400,             -- Posición inicial en el eje x
     y = 300,             -- Posición inicial en el eje y
     vy = 0,              -- Velocidad vertical inicial
     s = 200,             -- Velocidad de movimiento lateral
     jumpHeight = -500,   -- Altura del salto
-    width = 50,          -- Ancho del jugador
-    height = 50          -- Altura del jugador
+    width = 32,          -- Ancho del jugador
+    height = 32,          -- Altura del jugador 
+    sprite = nil
 }
 
 -- Definición de las plataformas
@@ -26,6 +27,16 @@ local gameState = "startMenu"
 function love.load()
     love.window.setTitle("Platformer Game")  -- Título de la ventana
     love.window.setMode(800, 600)            -- Tamaño de la ventana
+    player.sprite = love.graphics.newImage('sprites/sprite_char_a_stand/sprite_char_a_stand.png')
+    SPRITE_WIDTH,SPRITE_HEIGHT = 348,32
+    QUAD_WIDTH=32
+    QUAD_HEIGHT=SPRITE_HEIGHT
+    
+    quads={}
+    for i=1,12 do
+        quads[i]=love.graphics.newQuad(0,0,QUAD_WIDTH*(i-1),QUAD_HEIGHT,SPRITE_WIDTH,SPRITE_HEIGHT)
+    end
+   
 end
 
 -- Función para actualizar el estado del juego
@@ -36,6 +47,7 @@ function love.update(dt)
         end
     elseif gameState == "gameplay" then
         updateGameplay(dt)  -- Actualizar el juego en el estado de gameplay
+        
     end
 end
 
@@ -71,7 +83,7 @@ function drawGameplay()
     love.graphics.setColor(255, 255, 255)    -- Establecer el color blanco para dibujar el jugador
 
     -- Dibujar el jugador como un rectángulo blanco
-    love.graphics.rectangle("fill", player.x, player.y, player.width, player.height)
+    love.graphics.draw(player.sprite,quads[4], player.x, player.y)
 
     love.graphics.setColor(0, 255, 0)        -- Establecer el color verde para dibujar las plataformas
 
@@ -84,6 +96,7 @@ function drawGameplay()
 
     -- Dibujar el suelo como un rectángulo azul
     love.graphics.rectangle("fill", 0, floor.y, floor.l, floor.h)
+    love.graphics.draw(player.sprite,quads[1], player.x, player.y)
 end
 
 -- Función para actualizar el estado de gameplay
